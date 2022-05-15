@@ -19,8 +19,10 @@
 
 CSearchWordDlg::CSearchWordDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_SEARCHWORD_DIALOG, pParent)
-	, m_strNbOfThread(_T("16"))
+	, m_strNbOfThread(_T("4"))
 	, m_NbOfThread(0)
+	, m_resultsfile("C:\\Users\\maxja\\source\\repos\\SearchWord\\results.txt")
+
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);	
 
@@ -156,10 +158,11 @@ void CSearchWordDlg::InitDataBase()
 void CSearchWordDlg::OnBnClickedButtonSearch()
 {
 	using namespace std;
+	m_WordFound.clear(); // clear of any previous search
 
-	chrono::time_point<chrono::system_clock> start_time, end_time;
-	start_time = std::chrono::system_clock::now();
-
+	// Measure time of serach :
+	chrono::time_point<chrono::system_clock> start_time, end_time; // start and end times of search
+	start_time = std::chrono::system_clock::now(); 
 
 	CString InputWord;
 	CDataExchange DX(this, true);
@@ -175,14 +178,18 @@ void CSearchWordDlg::OnBnClickedButtonSearch()
 	end_time = std::chrono::system_clock::now();
 
 	double time_search = chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count()/1000.0;
+	
 	// Display results :
 	CString str;
-	str.Format(_T("Number of words found :\r\n %d \r\n"), m_WordFound.size());
-	
-	str.AppendFormat(_T("Time of search :\r\n %.3f s"),time_search);
-	
+	str.Format(_T("Number of words found :\r\n %d \r\n"), m_WordFound.size());	
+	str.AppendFormat(_T("Time of search :\r\n %.3f s \r\n"),time_search);
+	// Edit GUI
 	CDataExchange DXf(this, false);
 	DDX_Text(&DXf, IDC_EDIT_RESULTS, str);
+
+	std::string stdstr;
+	stdstr = (CStringA(str));
+	DisplayResults(stdstr);
 
 }
 
@@ -190,79 +197,41 @@ void CSearchWordDlg::SearchWord(std::string str_InWord)
 {
 	using namespace std;
 
-	size_t size_max_vec = static_cast<size_t>(floor(m_NbWords / m_NbOfThread)) + m_NbWords % m_NbOfThread;
-	size_t NumResultsTot = 0;
-	std::mutex NumRes_mutex;  // protects NumResultsTot
 	std::vector<std::vector<std::string>> vec_WordFound(m_NbOfThread);
-	m_WordFound.clear();
-	
-
-	auto _SearchPart = [this, &NumRes_mutex, &NumResultsTot, &vec_WordFound](std::string LetterIn, size_t StartInd, size_t EndInd, size_t i_th/*, std::vector<std::string>& WordFound ""*/)//Core function to find a letter scheme into a part of the word data base
+			
+	auto _SearchPart = [this, &vec_WordFound](std::string LetterIn, size_t StartInd, size_t EndInd, size_t i_th)//Core lambda function to find a letter scheme into a part of the word data base
 	{
 		size_t Size_Ind = EndInd - StartInd + 1;		
-		//IndFound[i_th] = std::vector<bool>(false, Size_Ind);
-		size_t NumResults=0;
-		//std::string Bufstr;
 		const unsigned char NbLetter = LetterIn.length();
 		assert(NbLetter > 0 && "Number of letters to search are not >0");
-
-		//Ind_found = std::vector<bool>(floor(m_NbWords/ m_NbOfThread), 0);
-
-		//for (auto it = m_WordDataBase.cbegin(); it != m_WordDataBase.end(); it++)
-		//{	std::string Bufstr = *it;
-		//if (NbLetter < m_SizeWord)
-		//	if (LetterIn == Bufstr.std::string::substr(0, NbLetter))
-		//	else
-			for (size_t i = StartInd; i <= EndInd; i++)
+				
+		for (size_t i = StartInd; i <= EndInd; i++)
+		{			
+			if (LetterIn == m_WordDataBase[i].std::string::substr(0, NbLetter))
 			{
-			//	if (NbLetter == m_SizeWord)
-			//		(LetterIn == m_WordDataBase[i]) ? IndFound[i_th][i - StartInd] = 0 : IndFound[i_th][i - StartInd] = 1;
-			//	else  // NbLetter < m_SizeWord => use of substring
-			//		(LetterIn == m_WordDataBase[i].std::string::substr(0, NbLetter)) ? IndFound[i_th][i - StartInd] = 0 : IndFound[i_th][i - StartInd] = 1;
-				//if (NbLetter == m_SizeWord)
-				//	if (LetterIn == m_WordDataBase[i])
-					//{
-				//		m_IndFound[i] = true; 
-					//	NumResults++;
-				//	}
-				if // NbLetter < m_SizeWord => use of substring
-					(LetterIn == m_WordDataBase[i].std::string::substr(0, NbLetter))
-				{
-					vec_WordFound[i_th].push_back(m_WordDataBase[i]);
-					//m_IndFound.push_back(i);						
-				}
+				vec_WordFound[i_th].push_back(m_WordDataBase[i]);									
 			}
-	
-			const std::lock_guard<std::mutex> lock(NumRes_mutex);
-			NumResultsTot += NumResults;
-
+		}
 		return;
 	};
-
-	
-	size_t SizeOfThread;// = static_cast<size_t>(floor(m_NbWords / m_NbOfThread));
-	//size_t SizeOffFirstThr = m_NbWords % m_NbOfThread;
+		
+	size_t SizeOfThread;
 	size_t StartInd = 0;
 	size_t EndInd = 0;
-	std::vector<thread> vec_th(m_NbOfThread);
-	//std::vector<thread> IndFound(m_NbOfThread, std::vector<bool>(size_max_vec, 0));
+	std::vector<thread> vec_th(m_NbOfThread); // vector of threads
 	
-
-	//for (int i_th = 0; i_th < m_NbOfThread; i_th++)
-	for (int i_th = 0; i_th < m_NbOfThread; i_th++)
+	for (int i_th = 0; i_th < m_NbOfThread; i_th++) // loop on threads
 	{
-		if (i_th == 0) // the first thread is a bit bigger than the next one if the number of total words are not a multiple of number of threads
+		if (i_th == 0) // if the number of total words are not a multiple of number of threads, the first thread is a bit bigger 
 			SizeOfThread = static_cast<size_t>(floor(m_NbWords / m_NbOfThread)) + m_NbWords % m_NbOfThread;
 		else
 			SizeOfThread = static_cast<size_t>(floor(m_NbWords / m_NbOfThread));
-
 		
-		//m_ArrayIndFound[i_th] = std::vector<bool>(SizeOfThread,0);
+		// StartInd and EndInd are here to insure that different parts of the word data base are being serched by the threads thus avoiding mutex
 		EndInd = StartInd + SizeOfThread - 1;
-		//IndFound[i_th] = vector<bool>(SizeOfThread,false);
-	
-		vec_th[i_th] = thread(_SearchPart, str_InWord, StartInd, EndInd, i_th/*, vec_WordFound[i_th]*/);
-		//vec_th[i_th] = thread(func_SearchPart, str_InWord, StartInd, EndInd, i_th);
+		
+		// Threads :
+		vec_th[i_th] = thread(_SearchPart, str_InWord, StartInd, EndInd, i_th);
 		
 		StartInd += SizeOfThread;
 
@@ -270,11 +239,10 @@ void CSearchWordDlg::SearchWord(std::string str_InWord)
 	
 	for (int i_th = 0; i_th < m_NbOfThread; i_th++)
 	{
-		vec_th[i_th].join(); //Wait for threads to end
-		m_WordFound.insert(m_WordFound.end(), vec_WordFound[i_th].begin(), vec_WordFound[i_th].end());; // Concatenate the results
+		vec_th[i_th].join(); //Wait end of threads
+		 // Concatenate results : results have been stored in different vectors to avoid any conflict of access.
+		m_WordFound.insert(m_WordFound.end(), vec_WordFound[i_th].begin(), vec_WordFound[i_th].end());
 		
-		//NumResultsTot += NumResults[i_th];
-		//NumResults += IndFound[i_th].size(); // count results		
 	}
 	
 	DisplayResults();
@@ -282,31 +250,16 @@ void CSearchWordDlg::SearchWord(std::string str_InWord)
 	
 }
 
-void CSearchWordDlg::DisplayResults()
+void CSearchWordDlg::DisplayResults(std::string str)
 {
-	CString Cstr = _T("Words found : \n");
-	//CString buff;
-	/*for (auto it = m_WordFound.cbegin(); it < m_WordFound.end(); it++)
-	{
-		Cstr.Format(_T("%s%s\n"), Cstr, *it);
-	}*/
+	std::ofstream fout(m_resultsfile.c_str(), std::ios::out);
+	
+	// Begining of file 
+	fout.write((char*)(str.c_str()), str.size());
 
-	//for (size_t i = 0; i <40 /*m_WordFound.size()*/; i++)
-	//{
-	//	//buff = m_WordFound[i].c_str();
-	//	Cstr += m_WordFound[i].c_str();
-	//	Cstr += "\r\n";
-	//	//Cstr.Format(_T("%s%s\n"), Cstr, m_WordFound[i].c_str());
-	//}
-	//AfxMessageBox(Cstr);
-	std::string outputpath;
-	outputpath = "C:\\Users\\maxja\\source\\repos\\SearchWord\\results.txt";
-	std::ofstream fout(outputpath.c_str(), std::ios::out);
-	//for (auto it = m_WordFound.cbegin(); it < m_WordFound.end(); it++)
+	// Loop on words found :
 	for (size_t i = 0; i < m_WordFound.size(); i++)
-	{
-		//fout.write((char*)(m_WordFound[0].c_str()), m_WordFound.size() * sizeof(m_WordFound[0].c_str()));
-		//fout.write((char*)(&(*it)), sizeof(&(*it)));
+	{		
 		fout.write((char*)(m_WordFound[i].c_str()), m_WordFound[i].size());
 		fout << std::endl;
 	}

@@ -56,9 +56,10 @@ public:
 	void SearchWord(std::string str_InWord);
 
 	// Results :
+	std::string m_resultsfile;
 	std::vector<std::string> m_WordFound; // Words found in the word data base
 	afx_msg void OnBnClickedButtonSearch();
-	void DisplayResults(); // Function to display found words
+	void DisplayResults(std::string str = ""); // Function to display found words
 	
 	
 };
