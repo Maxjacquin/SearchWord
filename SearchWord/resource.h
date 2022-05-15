@@ -6,10 +6,13 @@
 #define IDR_MAINFRAME                   128
 #define IDC_INPUT_WORD                  1001
 #define IDC_EDIT_NB_OF_THREADS          1002
-#define IDC_EDIT2                       1004
+#define IDC_EDIT_ALPHABET               1003
+#define IDC_EDIT_RESULT_FILE            1004
 #define IDC_EDIT_RESULTS                1005
-#define IDC_BUTTON1                     1006
 #define IDC_BUTTON_SEARCH               1006
+#define IDC_BUTTON_UPDATE_DATABASE      1007
+#define IDC_BUTTON_UPDATE_DATABASE2     1008
+#define IDC_BUTTON_CHANGE_RESULTSFILE   1008
 
 // Next default values for new objects
 // 

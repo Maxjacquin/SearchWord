@@ -41,12 +41,12 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	// Data Base related objetcs :
-	const std::string m_Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // alphabet used
+	std::string m_Alphabet;// "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // alphabet used
 	const int m_SizeWord = 4; // Number of letter in the words of the database	
-	const int m_NbWords = static_cast<int>(pow(m_Alphabet.length(), m_SizeWord));
+	int m_NbWords = static_cast<int>(pow(m_Alphabet.length(), m_SizeWord));
 	std::vector<std::string> m_WordDataBase; // word list made of all possible combinations of 4 upper case letters (AAAA to ZZZZ)
 	void	InitDataBase(); // Create word data base
-
+	CFont m_font;
 	// Thread related objects :
 	afx_msg void OnEnChangeEditNbOfThreads();
 	CString m_strNbOfThread; // Interface variable: number of thread to adapt according to the hardware configuration
@@ -62,5 +62,10 @@ public:
 	void DisplayResults(std::string str = ""); // Function to display found words
 	
 	
+//	CString m_GUIAlphabet;
+	afx_msg void OnEnChangeEditAlphabet();
+	afx_msg void OnBnClickedButtonUpdateDatabase();
+	afx_msg void OnEnChangeEditResultFile();
+	afx_msg void OnBnClickedButtonChangeResultsfile();
 };
 

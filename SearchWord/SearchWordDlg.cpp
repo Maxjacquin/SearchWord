@@ -19,9 +19,11 @@
 
 CSearchWordDlg::CSearchWordDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_SEARCHWORD_DIALOG, pParent)
+	, m_Alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZMMMMMMMMM")
 	, m_strNbOfThread(_T("4"))
-	, m_NbOfThread(0)
-	, m_resultsfile("C:\\Users\\maxja\\source\\repos\\SearchWord\\results.txt")
+	, m_NbOfThread(4)
+	, m_resultsfile("C:\\Users\\maxja\\source\\repos\\SearchWord\\x64\\Release\\results.txt")
+	, m_font()
 
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);	
@@ -34,15 +36,21 @@ CSearchWordDlg::CSearchWordDlg(CWnd* pParent /*=nullptr*/)
 void CSearchWordDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Text(pDX, IDC_EDIT_NB_OF_THREADS, m_strNbOfThread);
+	DDX_Text(pDX, IDC_EDIT_NB_OF_THREADS, m_strNbOfThread);	
+	DDX_Text(pDX, IDC_EDIT_ALPHABET, CString(m_Alphabet.c_str()));
+	DDX_Text(pDX, IDC_EDIT_RESULT_FILE, CString(m_resultsfile.c_str()));
+	
 }
 
 BEGIN_MESSAGE_MAP(CSearchWordDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-//	ON_EN_CHANGE(IDC_INPUT_WORD, &CSearchWordDlg::OnEnChangeInputWord)
 	ON_EN_CHANGE(IDC_EDIT_NB_OF_THREADS, &CSearchWordDlg::OnEnChangeEditNbOfThreads)
-	ON_BN_CLICKED(IDC_BUTTON_SEARCH, &CSearchWordDlg::OnBnClickedButtonSearch)
+	ON_BN_CLICKED(IDC_BUTTON_SEARCH, &CSearchWordDlg::OnBnClickedButtonSearch)	
+	//ON_BN_CLICKED(IDC_BUTTON_UPDATE_DATABASE, &CSearchWordDlg::OnBnClickedButtonUpdateDatabase)
+	ON_BN_CLICKED(IDC_BUTTON_UPDATE_DATABASE, &CSearchWordDlg::OnBnClickedButtonUpdateDatabase)
+	ON_EN_CHANGE(IDC_EDIT_RESULT_FILE, &CSearchWordDlg::OnEnChangeEditResultFile)
+	ON_BN_CLICKED(IDC_BUTTON_CHANGE_RESULTSFILE, &CSearchWordDlg::OnBnClickedButtonChangeResultsfile)
 END_MESSAGE_MAP()
 
 
@@ -57,13 +65,28 @@ BOOL CSearchWordDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
+
+	m_font.CreateFont(
+		26,                        // nHeight
+		0,                         // nWidth
+		0,                         // nEscapement
+		0,                         // nOrientation
+		FW_BOLD,				// nWeight
+		FALSE,                     // bItalic
+		FALSE,                     // bUnderline
+		0,                         // cStrikeOut
+		ANSI_CHARSET,              // nCharSet
+		OUT_DEFAULT_PRECIS,        // nOutPrecision
+		CLIP_DEFAULT_PRECIS,       // nClipPrecision
+		PROOF_QUALITY,           // nQuality
+		DEFAULT_PITCH | FF_SWISS,  // nPitchAndFamily
+		_T("Arial"));                 // lpszFacename
+
+	GetDlgItem(IDC_STATIC)->SetFont(&m_font);
 	// Initialisation of the word data base : 
 	InitDataBase();
 
 	m_NbOfThread = atoi(CStringA(m_strNbOfThread));
-
-	//m_pMultiSearch = std::make_unique<CMultiSearch>(this, m_WordDataBase, m_ArrayIndFound);
-	
 	
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -90,6 +113,7 @@ void CSearchWordDlg::OnPaint()
 
 		// Draw the icon
 		dc.DrawIcon(x, y, m_hIcon);
+				
 	}
 	else
 	{
@@ -107,6 +131,10 @@ HCURSOR CSearchWordDlg::OnQueryDragIcon()
 
 void CSearchWordDlg::InitDataBase()
 {
+	m_WordDataBase.clear(); 
+	m_NbWords = pow(m_Alphabet.length(), m_SizeWord);
+	m_WordDataBase = std::vector<std::string>(m_NbWords, "");
+
 	//Creation of DataBase 
 	size_t NbLetter = m_Alphabet.length();
 	
@@ -148,8 +176,7 @@ void CSearchWordDlg::InitDataBase()
 	}*/
 
 	//Verify the size of the data base.
-	assert(pos == pow(m_Alphabet.length(), m_SizeWord));
-
+	//assert(pos == pow(m_Alphabet.length(), m_SizeWord));
 	// Shuffle randomly words in the data base :
 	std::random_shuffle(m_WordDataBase.begin(), m_WordDataBase.end());
 		
@@ -177,15 +204,18 @@ void CSearchWordDlg::OnBnClickedButtonSearch()
 	
 	end_time = std::chrono::system_clock::now();
 
-	double time_search = chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count()/1000.0;
+	double time_search = chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 	
 	// Display results :
 	CString str;
-	str.Format(_T("Number of words found :\r\n %d \r\n"), m_WordFound.size());	
-	str.AppendFormat(_T("Time of search :\r\n %.3f s \r\n"),time_search);
+	str.Format(_T("Number of words found :\r\n %d upon a total of %d words \r\n"), m_WordFound.size(),m_NbWords);	
+	str.AppendFormat(_T("Time of search :\r\n %.3f ms \r\n"),time_search);
+	str.AppendFormat(_T("Results in file : \r\n \"%s\" \r\n"), CString(m_resultsfile.c_str()));
 	// Edit GUI
 	CDataExchange DXf(this, false);
 	DDX_Text(&DXf, IDC_EDIT_RESULTS, str);
+
+
 
 	std::string stdstr;
 	stdstr = (CStringA(str));
@@ -203,7 +233,7 @@ void CSearchWordDlg::SearchWord(std::string str_InWord)
 	{
 		size_t Size_Ind = EndInd - StartInd + 1;		
 		const unsigned char NbLetter = LetterIn.length();
-		assert(NbLetter > 0 && "Number of letters to search are not >0");
+		//assert(NbLetter > 0 && "Number of letters to search are not >0");
 				
 		for (size_t i = StartInd; i <= EndInd; i++)
 		{			
@@ -273,8 +303,42 @@ void CSearchWordDlg::OnEnChangeEditNbOfThreads()
 {
 	UpdateData(true);	
 	m_NbOfThread = atoi(CStringA(m_strNbOfThread));
-	assert(m_NbOfThread <= m_NbThreadMax);
+	//assert(m_NbOfThread <= m_NbThreadMax);
 	
 }
 
 
+void CSearchWordDlg::OnEnChangeEditAlphabet()
+{
+
+	
+}
+
+
+
+void CSearchWordDlg::OnBnClickedButtonUpdateDatabase()
+{	
+	CString Cstr;
+	CDataExchange DX(this, true);
+	DDX_Text(&DX, IDC_EDIT_ALPHABET, Cstr);
+	
+	m_Alphabet = CT2A(Cstr);
+	InitDataBase();
+}
+
+
+void CSearchWordDlg::OnEnChangeEditResultFile()
+{
+
+
+}
+
+
+void CSearchWordDlg::OnBnClickedButtonChangeResultsfile()
+{
+	CString Cstr;
+	CDataExchange DX(this, true);
+	DDX_Text(&DX, IDC_EDIT_RESULT_FILE, Cstr);
+
+	m_resultsfile = CT2A(Cstr);
+}
