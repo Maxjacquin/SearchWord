@@ -1,0 +1,36 @@
+Number of words found :
+ 30 upon a total of 810000 words 
+Time of search :
+ 7.000 ms 
+Results in file : 
+ "C:\Users\maxja\source\repos\SearchWord\x64\Release\results.txt" 
+QSDZ
+QSDV
+QSDH
+QSDN
+QSDG
+QSDR
+QSDB
+QSDO
+QSDL
+QSDS
+QSDA
+QSDW
+QSDD
+QSDK
+QSDX
+QSDM
+QSDM
+QSDJ
+QSDM
+QSDQ
+QSDE
+QSDP
+QSDM
+QSDC
+QSDF
+QSDY
+QSDU
+QSDM
+QSDT
+QSDI
